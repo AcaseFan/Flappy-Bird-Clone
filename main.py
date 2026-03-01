@@ -281,7 +281,7 @@ while True:
     # print(f"NOW: {now} | PREV_TIME: {prev_time}| DELTA_TIME {delta_time}")
     # 1. Event Handling
     for event in pygame.event.get():
-        if event.type == pygame.UIT:
+        if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
 
