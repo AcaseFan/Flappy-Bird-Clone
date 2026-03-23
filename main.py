@@ -8,7 +8,7 @@ pygame.init()
 # Game Constants
 SCREEN_WIDTH = 600
 SCREEN_HEIGHT = 800
-FPS = 60
+FPS = 0
 
 GRAVITY = 9.8 * 100
 
@@ -27,7 +27,7 @@ class Bird:
         self.pos_y = 300
         self.vel_y = 0
         self.reduce_hitbox = 2
-        self.sprite = pygame.image.load("sprites/bird.png")
+        self.sprite = pygame.image.load("sprites/bird.png").convert_alpha()
 
     def update(self, delta_time):
         self.pos_y += self.vel_y * delta_time
@@ -68,9 +68,10 @@ class Pipes:
         self.pos_x = SCREEN_WIDTH + self.WIDTH + 10
         self.hole_pos_y = random.randint(220, 420)
         self.scored = False
-        self.sprite_top = pygame.image.load("sprites/top_pipe.png")
-        self.sprite_bottom = pygame.image.load("sprites/bottom_pipe.png")
-
+        self.sprite_top = pygame.image.load("sprites/top_pipe.png").convert_alpha()
+        self.sprite_bottom = pygame.image.load(
+            "sprites/bottom_pipe.png"
+        ).convert_alpha()
         # Rects:
         self.bottom_pipe_Rect = pygame.Rect(
             self.pos_x, self.hole_pos_y + HOLE_SIZE / 2, Pipes.WIDTH, 400
@@ -110,13 +111,13 @@ class Menu:
         self.menu_x = (SCREEN_WIDTH * 0.2) / 2
         self.menu_y = SCREEN_HEIGHT / 4
         self.menu_width = SCREEN_WIDTH * 0.8
-        self.menu_height = SCREEN_HEIGHT / 2
+        self.menu_height = SCREEN_HEIGHT / 2.2
         self.menu_Rect = pygame.Rect(
             self.menu_x, self.menu_y, self.menu_width, self.menu_height
         )
 
     def draw(self):
-        pygame.draw.rect(window, pygame.Color("BROWN"), self.menu_Rect, 0, 50)
+        pygame.draw.rect(window, pygame.Color("WHITE"), self.menu_Rect, 0, 50)
 
 
 class Text:
@@ -166,11 +167,23 @@ class Game:
             pygame.Color("Black"),
         )
         self.quit_text = Text(
-            "PRESS ESC TO QUIT",
+            "ESC TO QUIT",
             SCREEN_WIDTH // 2,
-            SCREEN_HEIGHT // 2 + 125,
+            SCREEN_HEIGHT // 2 + 20,
             pygame.Color("Black"),
         )
+        self.retry_text = Text(
+            "SPACE TO RETRY",
+            SCREEN_WIDTH // 2,
+            SCREEN_HEIGHT // 2 + 90,
+            pygame.Color("Black"),
+        )
+        self.played_die_sfx = False
+        self.flap_sfx = pygame.mixer.Sound("soundFX/flap.mp3")
+        self.flappy_bird_hit_sound = pygame.mixer.Sound(
+            "soundFX/flappy-bird-hit-sound.mp3"
+        )
+        self.point_sfx = pygame.mixer.Sound("soundFX/point.mp3")
 
     def draw(self):
         for pipe in self.pipes:
@@ -189,9 +202,13 @@ class Game:
         self.bird.draw()
 
         if self.state == "STOPPED":
+            if not self.played_die_sfx:
+                self.flappy_bird_hit_sound.play()
+                self.played_die_sfx = True
             self.menu.draw()
             self.game_over_text.draw()
             self.quit_text.draw()
+            self.retry_text.draw()
         self.score_text.draw()
 
     def update(self):
@@ -212,6 +229,7 @@ class Game:
 
                 if not pipe.scored and (pipe.pos_x + pipe.WIDTH / 2) < self.bird.POS_X:
                     self.score += 1
+                    self.point_sfx.play()
                     pipe.scored = True
 
                     self.score_text.update(self.score)
@@ -245,6 +263,7 @@ class Game:
         self.bird.reset()
         self.state = "RUNNING"
         self.score_text.update(self.score)
+        self.played_die_sfx = False
 
     def game_over(self):
         self.state = "STOPPED"
@@ -290,12 +309,15 @@ while True:
                 if game.state == "STARTED":
                     game.state = "RUNNING"
                     game.bird.jump()
+                    game.flap_sfx.play()
                 if game.state == "STOPPED":
                     if pygame.time.get_ticks() - game.game_over_time > 250:
                         game.reset()
                         game.bird.jump()
+                        game.flap_sfx.play()
                 else:
                     game.bird.jump()
+                    game.flap_sfx.play()
             if game.state == "STOPPED":
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit()
